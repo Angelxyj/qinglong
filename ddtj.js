@@ -1,5 +1,6 @@
 /*
 @肥皂 1.4 多点淘金 每天三毛。。
+入口：  https://imgtu.com/i/bkNuIx  
 阅读类的项目还是别并发。。。 重写没测试。不知道行不行
 https://api.gzswin.cn/index/index    token获取链接
 https://api.gezs.cc/archery/index   unionid获取链接
@@ -7,12 +8,15 @@ mitm      api.gzswin.cn,api.gezs.cc
 青龙变量  ddtjunionid    ddtjtoken     多账号@隔开
 手动抓包，进首页就有token   unionid打开成语闯关小程序获取
 
+
+
 -------1.5增加判定，匹配不到文章的答案则随便提交答案。上限后强制多答题十次，多了一毛钱吧--------
 -------1.6增加提现判定。把当前余额全部提现----------------------
 -------1.14修复加密---------
 -------1.29加入团队自动提现功能---------
+-------2.25加入签到功能（好像每签到七天有大红包领取）-------
 */
-const $ = new Env('多点淘金');
+const $ = new Env('多点淘金-2.25');
 let status;
 status = (status = ($.getval("ddtjstatus") || "1")) > 1 ? `${status}` : ""; // 账号扩展字符
 let ddtjunionidArr = [], ddtjtokenArr = [], ddtjcount = ''
@@ -20,6 +24,12 @@ let ddtjunionid = ($.isNode() ? process.env.ddtjunionid : $.getdata('ddtjunionid
 let ddtjtoken = ($.isNode() ? process.env.ddtjtoken : $.getdata('ddtjtoken')) || '';
 let dydcode = '', dydid = '', wxurl = '', daan = '', openid = '',uid = '',cy = '',yue = '',ddtjjm = '',ddtjtdtx = ''
 var ddtjtime = Date.parse(new Date());
+var myDate = new Date();
+var myYear = myDate.getFullYear(); //获取完整的年份(4位,1970-????)
+var myMonth = myDate.getMonth() + 1; //获取当前月份(0-11,0代表1月)
+var myToday = myDate.getDate(); //获取当前日(1-31)
+if (myMonth >= 10) { myMonth = myMonth; } else { myMonth = "0" + myMonth; }
+if (myToday >= 10) { myToday = myToday; } else { myToday = "0" + myToday; }
 const CryptoJS = require('crypto-js');  //引用AES源码js
     
     const key = CryptoJS.enc.Utf8.parse("Ecaof1s6jrKv6xSl");  //十六位十六进制数作为密钥
@@ -48,6 +58,8 @@ const CryptoJS = require('crypto-js');  //引用AES源码js
       ddtjtoken = ddtjtokenArr[i]
       $.index = i + 1;
       console.log(`\n开始【多点淘金${$.index}】`)
+      await ddtjopen()
+      
       await ddtjhq()
       //console.log(`\n多点淘金【成语闯关】`)
       await ddtjye()
@@ -605,6 +617,34 @@ function ddtjtx1(timeout = 0) {
           await $.wait(3000)
         } else {
           $.log(`\n多点淘金团队提现:${result.msg}`)
+        }
+      } catch (e) {
+        //$.logErr(e, resp);
+      } finally {
+        resolve()
+      }
+    }, timeout)
+  })
+}
+
+//簽到
+function ddtjopen(timeout = 0) {
+  return new Promise((resolve) => {
+    ddtjjm = Encrypt(`{"date":"${myYear}-${myMonth}-${myToday}","time":"${ddtjtime}"}`)
+  
+    let url = {
+      url: 'https://api.gzswin.cn/appsign/open',
+      headers: JSON.parse(`{"Host":"api.gzswin.cn","Accept":"*/*","User-Agent":"Mozilla/5.0 (iPad; CPU OS 14_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MicroMessenger/8.0.16(0x1800103f) NetType/WIFI Language/zh_CN","Content-Type":"application/json","Content-Length":"62"}`),
+      body: `{"data":"${ddtjjm}","token":"${ddtjtoken}"}`
+    }
+    $.post(url, async (err, resp, data) => {
+      try {
+        const result = JSON.parse(data)
+        if (result.code == 200) {
+          $.log(`\n多点淘金签到:${result.msg}获得红包${result.data}`)
+          
+        } else {
+          $.log(`\n多点淘金签到:${result.msg}`)
         }
       } catch (e) {
         //$.logErr(e, resp);
